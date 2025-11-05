@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package videoproc;
+
+option go_package = "proto/videoproc;videoproc";
+
+service VideoProcessor {
+  rpc ProcessVideo(stream VideoChunk) returns (ProcessResponse);
+}
+
+message VideoChunk {
+  string filename = 1;
+  bytes data = 2;
+  string video_id = 3;
+}
+
+message ProcessResponse {
+  string video_id = 1;
+  string summary = 2;
+  string error = 3;
+  string status = 4;
+}

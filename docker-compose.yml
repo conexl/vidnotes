@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:6
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: ${DB_NAME:-vidnotes}
+    volumes:
+      - mongo_data:/data/db
+
+  api:
+    build:
+      context: ./go-service
+    depends_on:
+      - mongo
+    environment:
+      PORT: 8080
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongo:27017}
+      DB_NAME: ${DB_NAME:-vidnotes}
+      GRPC_SERVER_ADDR: ${GRPC_SERVER_ADDR:-py-processor:50051}
+      JWT_SECRET: ${JWT_SECRET:-change-me}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-refresh}
+    ports:
+      - "8080:8080"
+
+  web:
+    build:
+      context: ./web
+    environment:
+      NEXT_PUBLIC_API_URL: /api/v1
+      NODE_ENV: production
+    depends_on:
+      - api
+
+  nginx:
+    image: nginx:1.25-alpine
+    depends_on:
+      - web
+      - api
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+
+volumes:
+  mongo_data:

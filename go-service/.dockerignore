@@ -1,0 +1,42 @@
+# ./go-service/.dockerignore
+.env
+.git
+.gitignore
+.idea
+.vscode
+node_modules
+__pycache__
+.DS_Store
+*.log
+*.sqlite
+*.swp
+*.swo
+
+# ./web/.dockerignore
+.env
+.git
+.gitignore
+.idea
+.vscode
+node_modules
+.next
+public
+.DS_Store
+*.log
+*.sqlite
+*.swp
+*.swo
+
+# ./py-processor/.dockerignore
+.env
+.git
+.gitignore
+.idea
+.vscode
+node_modules
+__pycache__
+.DS_Store
+*.log
+*.sqlite
+*.swp
+*.swo

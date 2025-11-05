@@ -1,0 +1,6 @@
+opencv-python-headless==4.8.1.78
+pytesseract==0.3.10
+openai-whisper==20231117
+grpcio==1.60.0
+grpcio-tools==1.60.0
+numpy<2

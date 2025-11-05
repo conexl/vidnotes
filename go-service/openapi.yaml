@@ -1,0 +1,543 @@
+openapi: 3.0.3
+info:
+  title: VidNotes API
+  version: 1.0.0
+  description: REST API for authentication, user profile, videos processing, and AI sessions.
+servers:
+  - url: http://localhost:8080
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  service:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+  /api/v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                  tokens:
+                    $ref: '#/components/schemas/TokenPair'
+        '400': { $ref: '#/components/responses/BadRequest' }
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                  tokens:
+                    $ref: '#/components/schemas/TokenPair'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh_token:
+                  type: string
+              required: [refresh_token]
+      responses:
+        '200':
+          description: New token pair
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenPair'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/user/profile:
+    get:
+      tags: [User]
+      security: [{ bearerAuth: [] }]
+      summary: Get user profile
+      responses:
+        '200':
+          description: Profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    put:
+      tags: [User]
+      security: [{ bearerAuth: [] }]
+      summary: Update user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/user/change-password:
+    post:
+      tags: [User]
+      security: [{ bearerAuth: [] }]
+      summary: Change password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/user/analytics:
+    get:
+      tags: [User]
+      security: [{ bearerAuth: [] }]
+      summary: Get user analytics
+      responses:
+        '200':
+          description: Analytics object
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/videos/upload:
+    post:
+      tags: [Videos]
+      security: [{ bearerAuth: [] }]
+      summary: Upload a video file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required: [file]
+      responses:
+        '202':
+          description: Accepted and processing started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  video:
+                    $ref: '#/components/schemas/Video'
+                  message:
+                    type: string
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/videos/:
+    get:
+      tags: [Videos]
+      security: [{ bearerAuth: [] }]
+      summary: List user's videos
+      responses:
+        '200':
+          description: List of videos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Video'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/videos/{id}:
+    get:
+      tags: [Videos]
+      security: [{ bearerAuth: [] }]
+      summary: Get video status by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Video
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Video'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    delete:
+      tags: [Videos]
+      security: [{ bearerAuth: [] }]
+      summary: Delete video by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/videos/{id}/result:
+    get:
+      tags: [Videos]
+      security: [{ bearerAuth: [] }]
+      summary: Get processed video result
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Result object
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/ai/sessions:
+    get:
+      tags: [AI]
+      security: [{ bearerAuth: [] }]
+      summary: List user AI sessions
+      responses:
+        '200':
+          description: List of sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AISession'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [AI]
+      security: [{ bearerAuth: [] }]
+      summary: Create AI session for video
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                video_id:
+                  type: string
+                title:
+                  type: string
+              required: [video_id]
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AISession'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/ai/sessions/{id}:
+    get:
+      tags: [AI]
+      security: [{ bearerAuth: [] }]
+      summary: Get AI session by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AISession'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [AI]
+      security: [{ bearerAuth: [] }]
+      summary: Delete AI session by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/ai/sessions/{id}/message:
+    post:
+      tags: [AI]
+      security: [{ bearerAuth: [] }]
+      summary: Send a message to AI session
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+              required: [message]
+      responses:
+        '200':
+          description: AI message response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              message:
+                type: string
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              message:
+                type: string
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              message:
+                type: string
+  schemas:
+    TokenPair:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+        expires_in:
+          type: integer
+    CreateUserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        name:
+          type: string
+        avatar_url:
+          type: string
+      required: [email, password, name]
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required: [email, password]
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        avatar_url:
+          type: string
+    ChangePasswordRequest:
+      type: object
+      properties:
+        old_password:
+          type: string
+        new_password:
+          type: string
+          minLength: 6
+      required: [old_password, new_password]
+    Video:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        filename:
+          type: string
+        status:
+          type: string
+          description: processing status
+        progress:
+          type: integer
+        summary:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    AISession:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        video_id:
+          type: string
+        title:
+          type: string
+        summary:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/AIMessage'
+    AIMessage:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [system, user, assistant]
+        content:
+          type: string
+        time:
+          type: string
+          format: date-time
+    AIResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        session_id:
+          type: string
+        time:
+          type: string
+          format: date-time
